@@ -1,0 +1,96 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MessageStatus {
+  DRAFT
+  AUTHORIZING
+  AUTHORIZED
+  ACCEPTED
+  RELEASED
+  EXPIRED
+  FAILED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Stripe Connect for payouts (Express)
+  stripeAccountId String?
+  stripeOnboarded Boolean @default(false)
+
+  bondPage BondPage?
+  messages Message[] @relation("ReceiverMessages")
+}
+
+model BondPage {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  slug         String  @unique
+  displayName  String?
+  headline     String?
+  instructions String?
+
+  // Receiver settings
+  minBondCents Int     @default(500) // $5
+  allowBoost   Boolean @default(true)
+  maxBondCents Int     @default(1500) // $15
+  timeoutHours Int     @default(72)
+
+  categoriesJson Json?
+  allowlistJson  Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  messages Message[]
+}
+
+model Message {
+  id       String @id @default(cuid())
+  publicId String @unique @default(cuid())
+
+  receiverId String
+  bondPageId String
+
+  senderEmail String
+  senderName  String?
+  subject     String?
+  body        String
+
+  // Pricing at time of send (immutable)
+  bondCents        Int
+  deliveryFeeCents Int
+  currency         String @default("usd")
+
+  status MessageStatus @default(DRAFT)
+
+  // Stripe
+  paymentIntentId String? @unique
+  latestChargeId  String?
+  transferId      String?
+
+  // Timing
+  authorizedAt DateTime?
+  expiresAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  receiver User     @relation("ReceiverMessages", fields: [receiverId], references: [id])
+  bondPage BondPage @relation(fields: [bondPageId], references: [id])
+
+  @@index([receiverId, status])
+  @@index([expiresAt])
+}
