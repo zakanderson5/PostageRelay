@@ -16,6 +16,4 @@ jobs:
         env:
           CRON_URL: ${{ secrets.CRON_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-git add .github/workflows/expire.yml
-git commit -m "Add scheduled expire job"
-git push
+
