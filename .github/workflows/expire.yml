@@ -1,0 +1,18 @@
+name: Expire old authorized messages
+
+on:
+  schedule:
+    - cron: "*/10 * * * *" # every 10 minutes
+  workflow_dispatch: {}
+
+jobs:
+  expire:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call expire endpoint
+        run: |
+          curl -fsS -X POST "$CRON_URL" \
+            -H "Authorization: Bearer $CRON_SECRET"
+        env:
+          CRON_URL: ${{ secrets.CRON_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
