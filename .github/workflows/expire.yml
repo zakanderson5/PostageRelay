@@ -2,7 +2,7 @@ name: Expire old authorized messages
 
 on:
   schedule:
-    - cron: "*/10 * * * *" # every 10 minutes
+    - cron: "*/10 * * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -16,4 +16,3 @@ jobs:
         env:
           CRON_URL: ${{ secrets.CRON_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-
