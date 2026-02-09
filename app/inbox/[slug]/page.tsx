@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { signMessage } from "@/lib/signedLinks";
 import { notFound } from "next/navigation";
+import type { Message } from "@prisma/client";
 
 export default async function InboxPage(props: {
   params: Promise<{ slug: string }>;
@@ -18,18 +20,24 @@ export default async function InboxPage(props: {
 
   if (!page) notFound();
 
+  // Links valid for 7 days
+  const expUnix = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
+
   return (
     <main style={{ padding: 24, maxWidth: 920, margin: "0 auto", fontFamily: "system-ui" }}>
       <h1 style={{ fontSize: 26, fontWeight: 800 }}>Inbox: {slug}</h1>
 
       <p style={{ color: "#bbb" }}>
-        Demo inbox (no auth yet). Next we’ll secure it with signed links + login.
+        Demo inbox (no auth yet). For real use, you’ll act via signed Review links.
       </p>
 
       <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
-        {page.messages.map((m) => {
+        {page.messages.map((m: Message) => {
           const bond = (m.bondCents / 100).toFixed(2);
           const fee = (m.deliveryFeeCents / 100).toFixed(2);
+
+          const sig = signMessage(m.publicId, expUnix);
+          const review = `/r/${m.publicId}?e=${expUnix}&s=${sig}`;
 
           return (
             <div key={m.id} style={{ padding: 12, border: "1px solid #333", borderRadius: 10 }}>
@@ -41,26 +49,11 @@ export default async function InboxPage(props: {
                 {m.expiresAt ? <div><b>Expires:</b> {m.expiresAt.toISOString()}</div> : null}
               </div>
 
-              <details style={{ marginTop: 8 }}>
-                <summary>Message</summary>
-                <pre style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{m.body}</pre>
-              </details>
-
-              {m.status === "AUTHORIZED" ? (
-                <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-                  <form method="post" action={`/api/messages/${m.publicId}/accept`}>
-                    <button style={{ padding: 10, borderRadius: 10, border: "1px solid #222", fontWeight: 800 }}>
-                      Accept (keep bond)
-                    </button>
-                  </form>
-
-                  <form method="post" action={`/api/messages/${m.publicId}/release`}>
-                    <button style={{ padding: 10, borderRadius: 10, border: "1px solid #222", fontWeight: 800 }}>
-                      Release (capture fee only)
-                    </button>
-                  </form>
-                </div>
-              ) : null}
+              <div style={{ marginTop: 10 }}>
+                <a href={review} style={{ textDecoration: "underline" }}>
+                  Review (signed link)
+                </a>
+              </div>
             </div>
           );
         })}
