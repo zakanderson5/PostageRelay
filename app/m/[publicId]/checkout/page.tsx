@@ -3,9 +3,10 @@ import { stripe } from "@/lib/stripe";
 import { notFound } from "next/navigation";
 import CheckoutClient from "./CheckoutClient";
 
-export default async function CheckoutPage(props: {
-  params: Promise<{ publicId: string }>;
-}) {
+export default async function CheckoutPage(props: { params: Promise<{ publicId: string }> }) {
+  const { publicId } = await props.params;
+  // ...
+}
   const { publicId } = await props.params;
 
   const message = await prisma.message.findUnique({
