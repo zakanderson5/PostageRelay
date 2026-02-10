@@ -40,7 +40,7 @@ function getCronToken(req: Request) {
 }
 
 async function handle(req: Request) {
-  // ✅ Auth check FIRST (before doing any work)
+  // ✅ Auth check FIRST
   const expected = process.env.CRON_SECRET?.trim();
   if (!expected) {
     console.error("CRON_SECRET is missing in env");
