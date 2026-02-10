@@ -21,14 +21,43 @@ import { stripe } from "@/lib/stripe";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
-  const url = new URL(req.url);
-  const secret = url.searchParams.get("secret");
+function getCronToken(req: Request) {
+  // 1) Authorization: Bearer <token>
+  const auth = req.headers.get("authorization") || "";
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  if (m?.[1]) return m[1].trim();
 
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
+  // 2) x-cron-secret: <token>
+  const x = req.headers.get("x-cron-secret");
+  if (x) return x.trim();
+
+  // 3) fallback: ?secret=<token>
+  const url = new URL(req.url);
+  const q = url.searchParams.get("secret");
+  if (q) return q.trim();
+
+  return null;
+}
+
+async function handle(req: Request) {
+  // ✅ Auth check FIRST (before doing any work)
+  const expected = process.env.CRON_SECRET?.trim();
+  if (!expected) {
+    console.error("CRON_SECRET is missing in env");
+    return new Response("Server misconfigured (missing CRON_SECRET)", { status: 500 });
+  }
+
+  const got = getCronToken(req);
+  if (!got || got !== expected) {
+    console.warn("Cron unauthorized", {
+      hasAuthHeader: !!req.headers.get("authorization"),
+      hasXCron: !!req.headers.get("x-cron-secret"),
+      gotLen: got?.length ?? 0,
+    });
     return new Response("Unauthorized", { status: 401 });
   }
 
+  // ✅ Expire logic (fee-only capture)
   const now = new Date();
 
   const due = await prisma.message.findMany({
@@ -48,13 +77,11 @@ export async function POST(req: Request) {
     try {
       const pi = await stripe.paymentIntents.retrieve(msg.paymentIntentId!);
 
-      // Only capturable intents can be partially captured
       if (pi.status !== "requires_capture") {
         skipped++;
         continue;
       }
 
-      // Capture delivery fee only; remainder is released automatically
       const captured = await stripe.paymentIntents.capture(msg.paymentIntentId!, {
         amount_to_capture: msg.deliveryFeeCents,
       });
@@ -70,10 +97,17 @@ export async function POST(req: Request) {
 
       expired++;
     } catch {
-      // Leave it for next run
       skipped++;
     }
   }
 
   return Response.json({ checked: due.length, expired, skipped });
+}
+
+export async function POST(req: Request) {
+  return handle(req);
+}
+
+export async function GET(req: Request) {
+  return handle(req);
 }
