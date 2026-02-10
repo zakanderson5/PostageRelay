@@ -1,20 +1,3 @@
-function getCronToken(req: Request) {
-  // 1) Authorization: Bearer <token>
-  const auth = req.headers.get("authorization") || "";
-  const m = auth.match(/^Bearer\s+(.+)$/i);
-  if (m?.[1]) return m[1].trim();
-
-  // 2) x-cron-secret: <token>
-  const x = req.headers.get("x-cron-secret");
-  if (x) return x.trim();
-
-  // 3) fallback: ?secret=<token> (not preferred but useful)
-  const url = new URL(req.url);
-  const q = url.searchParams.get("secret");
-  if (q) return q.trim();
-
-  return null;
-}
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
 
@@ -40,7 +23,6 @@ function getCronToken(req: Request) {
 }
 
 async function handle(req: Request) {
-  // ✅ Auth check FIRST
   const expected = process.env.CRON_SECRET?.trim();
   if (!expected) {
     console.error("CRON_SECRET is missing in env");
@@ -57,7 +39,6 @@ async function handle(req: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // ✅ Expire logic (fee-only capture)
   const now = new Date();
 
   const due = await prisma.message.findMany({
@@ -76,7 +57,6 @@ async function handle(req: Request) {
   for (const msg of due) {
     try {
       const pi = await stripe.paymentIntents.retrieve(msg.paymentIntentId!);
-
       if (pi.status !== "requires_capture") {
         skipped++;
         continue;
