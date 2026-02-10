@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 function dollarsToCents(value: string | null): number | undefined {
   if (!value) return undefined;
@@ -9,82 +8,70 @@ function dollarsToCents(value: string | null): number | undefined {
   return Math.round(n * 100);
 }
 
+function looksLikeEmail(s: string) {
+  return s.includes("@") && s.includes(".") && s.length <= 254;
+}
+
 export async function POST(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = await context.params; // ✅ FIX: await params
-
+  const { slug } = await context.params; // works even if params isn't actually a Promise
   const formData = await request.formData();
 
+  // Optional honeypot field (only works if you added <input name="website" ...> to the form)
+  const website = String(formData.get("website") || "").trim();
+  if (website) {
+    // Pretend success; bots filled the trap
+    return new Response(null, { status: 204 });
+  }
+
   const senderEmail = String(formData.get("senderEmail") || "").trim();
-  const senderName = String(formData.get("senderName") || "").trim() || null;
-  const subject = String(formData.get("subject") || "").trim() || null;
+  const senderNameRaw = String(formData.get("senderName") || "").trim();
+  const subjectRaw = String(formData.get("subject") || "").trim();
   const body = String(formData.get("body") || "").trim();
+
+  const senderName = senderNameRaw ? senderNameRaw.slice(0, 120) : null;
+  const subject = subjectRaw ? subjectRaw.slice(0, 180) : null;
+
+  // Hard limits to prevent abuse
+  if (!looksLikeEmail(senderEmail)) return new Response("Invalid senderEmail", { status: 400 });
+  if (!body || body.length > 5000) return new Response("Invalid body", { status: 400 });
 
   const requestedBondCents = dollarsToCents(
     formData.get("bondDollars")?.toString() ?? null
   );
 
   const page = await prisma.bondPage.findUnique({
-    where: { slug }, // ✅ slug is now correct
+    where: { slug },
   });
 
   if (!page) return NextResponse.json({ error: "Page not found" }, { status: 404 });
 
-  if (!senderEmail || !senderEmail.includes("@") || !body) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
-
   const min = page.minBondCents;
   const max = page.allowBoost ? page.maxBondCents : min;
-
   const requested = typeof requestedBondCents === "number" ? requestedBondCents : min;
   const bondCents = Math.min(Math.max(requested, min), max);
 
-  const deliveryFeeCents = 99;
-  const totalCents = bondCents + deliveryFeeCents;
-
-  // 1) Create DB message first
-  const message = await prisma.message.create({
+  const msg = await prisma.message.create({
     data: {
       receiverId: page.userId,
       bondPageId: page.id,
+
       senderEmail,
       senderName: senderName ?? undefined,
       subject: subject ?? undefined,
       body,
+
       bondCents,
-      deliveryFeeCents,
+      deliveryFeeCents: 99,
       currency: "usd",
-      status: "AUTHORIZING",
+      status: "DRAFT",
     },
+    select: { publicId: true },
   });
 
-  // 2) Create a manual-capture PaymentIntent (authorization hold)
-  const pi = await stripe.paymentIntents.create(
-    {
-      amount: totalCents,
-      currency: "usd",
-      capture_method: "manual",
-      payment_method_types: ["card"],
-      metadata: {
-        messagePublicId: message.publicId,
-        receiverId: page.userId,
-        bondCents: String(bondCents),
-        deliveryFeeCents: String(deliveryFeeCents),
-      },
-    },
-    { idempotencyKey: `msg_${message.publicId}` }
-  );
-
-  // 3) Save PaymentIntent id
-  await prisma.message.update({
-    where: { id: message.id },
-    data: { paymentIntentId: pi.id },
-  });
-
-  // 4) Redirect to checkout page
-  const url = new URL(`/m/${message.publicId}/checkout`, request.url);
+  // Redirect into your existing checkout flow
+  const url = new URL(`/m/${msg.publicId}/checkout`, request.url);
   return NextResponse.redirect(url, 303);
 }
