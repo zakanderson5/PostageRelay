@@ -6,16 +6,12 @@ import Stripe from "stripe";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-const HANDLED = new Set([
-  "payment_intent.amount_capturable_updated",
-  "payment_intent.payment_failed",
-  "payment_intent.canceled",
-]);
-
 export async function POST(req: Request) {
-  if (!endpointSecret) return new Response("Missing STRIPE_WEBHOOK_SECRET", { status: 500 });
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!endpointSecret) {
+    console.error("STRIPE_WEBHOOK_SECRET missing");
+    return new Response("Server misconfigured", { status: 500 });
+  }
 
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("Missing stripe-signature", { status: 400 });
@@ -26,53 +22,83 @@ export async function POST(req: Request) {
   try {
     event = stripe.webhooks.constructEvent(buf, sig, endpointSecret);
   } catch (err: any) {
-    return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    console.error("Webhook signature verification failed", err?.message ?? err);
+    return new Response("Webhook Error", { status: 400 });
   }
 
-  if (!HANDLED.has(event.type)) return new Response("ok", { status: 200 });
+  const obj: any = event.data.object as any;
+  const publicId: string | undefined = obj?.metadata?.messagePublicId;
 
-  const pi = event.data.object as Stripe.PaymentIntent;
-  const publicId = pi.metadata?.messagePublicId;
+  // If we can't associate this event to a message, ignore safely.
+  // (Returning 200 prevents Stripe retry storms.)
+  if (!publicId) {
+    console.warn("Webhook event missing metadata.messagePublicId", { type: event.type });
+    return new Response("ok", { status: 200 });
+  }
 
-  console.log("🔔 webhook:", event.type, "pi:", pi.id, "status:", pi.status, "publicId:", publicId);
-
-  if (!publicId) return new Response("Missing messagePublicId", { status: 200 });
-
+  // Load the message + receiver email + bondPage settings
   const msg = await prisma.message.findUnique({
     where: { publicId },
-    include: { bondPage: true, receiver: true },
+    include: { receiver: true, bondPage: true },
   });
 
-  if (!msg) return new Response("Message not found", { status: 200 });
+  if (!msg) {
+    console.warn("Webhook message not found", { publicId, type: event.type });
+    return new Response("ok", { status: 200 });
+  }
 
   if (event.type === "payment_intent.amount_capturable_updated") {
+    const pi = obj as Stripe.PaymentIntent;
+
+    console.log("🔔 webhook: payment_intent.amount_capturable_updated", {
+      pi: pi.id,
+      status: pi.status,
+      publicId,
+    });
+
+    // Only transition once
+    if (msg.status === "AUTHORIZED" || msg.status === "ACCEPTED" || msg.status === "RELEASED" || msg.status === "EXPIRED") {
+      return new Response("ok", { status: 200 });
+    }
+
     const now = new Date();
     const expiresAt = new Date(now.getTime() + msg.bondPage.timeoutHours * 60 * 60 * 1000);
 
-    const updated = await prisma.message.updateMany({
-      where: { id: msg.id, status: { in: ["AUTHORIZING", "DRAFT"] } },
-      data: { status: "AUTHORIZED", authorizedAt: now, expiresAt },
+    await prisma.message.update({
+      where: { id: msg.id },
+      data: {
+        status: "AUTHORIZED",
+        authorizedAt: now,
+        expiresAt,
+      },
     });
 
-    console.log("🔔 capturable → updated rows:", updated.count);
-
-    if (updated.count === 1) {
+    try {
       await notifyReceiver({
         to: msg.receiver.email,
         senderEmail: msg.senderEmail,
-        subject: msg.subject ?? null,
+        subject: msg.subject,
         body: msg.body,
         publicId: msg.publicId,
         expiresAt,
       });
+    } catch (e: any) {
+      console.error("notifyReceiver failed", { publicId, error: e?.message ?? String(e) });
+      // We still return 200; otherwise Stripe will retry the webhook repeatedly.
     }
+
+    return new Response("ok", { status: 200 });
   }
 
   if (event.type === "payment_intent.payment_failed" || event.type === "payment_intent.canceled") {
+    console.log("🔔 webhook: payment failed/canceled", { type: event.type, publicId });
+
     await prisma.message.update({
       where: { id: msg.id },
       data: { status: "FAILED" },
     });
+
+    return new Response("ok", { status: 200 });
   }
 
   return new Response("ok", { status: 200 });
