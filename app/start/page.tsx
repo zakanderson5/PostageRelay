@@ -1,45 +1,77 @@
 export default function StartPage() {
   return (
-    <main style={{ padding: 24, maxWidth: 720, margin: "0 auto", fontFamily: "system-ui" }}>
-      <h1 style={{ fontSize: 28, fontWeight: 900 }}>Create your Postage Relay link</h1>
+    <main
+      style={{
+        maxWidth: 520,
+        margin: "40px auto",
+        padding: 20,
+        fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+      }}
+    >
+      <h1 style={{ marginBottom: 8 }}>Create your PostageRelay inbox</h1>
 
-      <p style={{ marginTop: 10, color: "#444" }}>
-        Invite-only for now. You’ll get a personal link you can share (example:
-        <b> https://www.postagerelay.com/u/yourname</b>).
+      <p style={{ marginTop: 0, opacity: 0.85, lineHeight: 1.4 }}>
+        You’ll pick your link first, then you’ll be redirected to Stripe to connect an account so you
+        can receive payouts when you accept messages.
       </p>
 
-      <form
-        action="/api/start"
-        method="post"
-        style={{ marginTop: 16, display: "grid", gap: 10, padding: 14, border: "1px solid #ddd", borderRadius: 12 }}
-      >
+      <form action="/api/start" method="POST" style={{ display: "grid", gap: 12 }}>
         <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontWeight: 700 }}>Invite code</span>
-          <input name="invite" required placeholder="Invite code" style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }} />
+          <span>Your email (where you’ll receive reviews)</span>
+          <input
+            name="email"
+            type="email"
+            placeholder="you@company.com"
+            required
+            style={{ padding: 10, borderRadius: 8, border: "1px solid #333" }}
+          />
         </label>
 
         <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontWeight: 700 }}>Your email</span>
-          <input name="email" type="email" required placeholder="you@example.com" style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }} />
+          <span>Choose your link</span>
+          <input
+            name="slug"
+            placeholder="acme-support"
+            required
+            minLength={3}
+            maxLength={32}
+            style={{ padding: 10, borderRadius: 8, border: "1px solid #333" }}
+          />
         </label>
 
         <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontWeight: 700 }}>Your link (slug)</span>
-          <input name="slug" required placeholder="e.g. zak (letters/numbers/hyphens)" style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }} />
+          <span>Display name (optional)</span>
+          <input
+            name="displayName"
+            placeholder="Acme Support"
+            style={{ padding: 10, borderRadius: 8, border: "1px solid #333" }}
+          />
         </label>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontWeight: 700 }}>Display name (optional)</span>
-          <input name="displayName" placeholder="e.g. Zak" style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd" }} />
-        </label>
+        {/* Honeypot: bots tend to fill this. Humans won't see it. */}
+        <input
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          style={{ display: "none" }}
+        />
 
-        <button type="submit" style={{ padding: 12, borderRadius: 12, border: "1px solid #222", fontWeight: 800 }}>
-          Create my link
+        <button
+          type="submit"
+          style={{
+            padding: "12px 14px",
+            borderRadius: 10,
+            border: "1px solid #333",
+            cursor: "pointer",
+            fontWeight: 600,
+          }}
+        >
+          Continue to Stripe
         </button>
       </form>
 
-      <p style={{ marginTop: 14, color: "#666" }}>
-        Note: if you already have a link, submitting again will redirect you to your existing page.
+      <p style={{ marginTop: 14, fontSize: 12, opacity: 0.7 }}>
+        By continuing you’ll be redirected to Stripe Connect onboarding.
       </p>
     </main>
   );
