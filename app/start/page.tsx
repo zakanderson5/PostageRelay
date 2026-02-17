@@ -1,4 +1,11 @@
+"use client";
+
+import { useState } from "react";
+import DomainRoutingOptions from "./DomainRoutingOptions";
+
 export default function StartPage() {
+  const [slug, setSlug] = useState("");
+
   return (
     <main
       style={{
@@ -32,12 +39,16 @@ export default function StartPage() {
           <input
             name="slug"
             placeholder="acme-support"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
             required
             minLength={3}
             maxLength={32}
             style={{ padding: 10, borderRadius: 8, border: "1px solid #333" }}
           />
         </label>
+
+        <DomainRoutingOptions slug={slug} />
 
         <label style={{ display: "grid", gap: 6 }}>
           <span>Display name (optional)</span>
