@@ -50,8 +50,7 @@ export default function DomainRoutingOptions({ slug }: Props) {
           {publicLink}
         </div>
         <div style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            type="button"
+          <button type="button"
             onClick={async () => {
               const ok = await copyToClipboard(publicLink);
               setCopied(ok ? "link" : "");
@@ -75,8 +74,7 @@ export default function DomainRoutingOptions({ slug }: Props) {
         </div>
 
         <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
-          <button
-            type="button"
+          <button type="button"
             onClick={async () => {
               const ok = await copyToClipboard(relayAddress);
               setCopied(ok ? "relay" : "");
@@ -95,8 +93,7 @@ export default function DomainRoutingOptions({ slug }: Props) {
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <button
-          type="button"
+        <button type="button"
           onClick={() => setShowAdvanced((v) => !v)}
           style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #333", background: "transparent", color: "#fff", cursor: "pointer" }}
         >
