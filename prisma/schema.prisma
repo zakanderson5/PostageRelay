@@ -28,6 +28,7 @@ model User {
   // Stripe Connect for payouts (Express)
   stripeAccountId String?
   stripeOnboarded Boolean @default(false)
+  passwordHash        String?
 
   bondPage BondPage?
   messages Message[] @relation("ReceiverMessages")
