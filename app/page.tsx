@@ -1,65 +1,121 @@
-import Image from "next/image";
+import Link from "next/link";
+import TopNav from "./_components/TopNav";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main style={{ minHeight: "100vh" }}>
+      <TopNav />
+
+      <div style={{ width: "100%", maxWidth: 920, margin: "0 auto", padding: "36px 16px 60px" }}>
+        <div style={{ padding: "26px 18px", border: "1px solid #222", borderRadius: 16 }}>
+          <div style={{ fontSize: 46, fontWeight: 900, lineHeight: 1.05 }}>
+            Make inbound email respectful.
+          </div>
+
+          <p style={{ marginTop: 14, fontSize: 18, opacity: 0.85, maxWidth: 720, lineHeight: 1.5 }}>
+            PostageRelay lets businesses publish a link (or forward a domain inbox) that requires a refundable bond.
+            If you accept the message, you get paid. If you release or ignore it, the sender gets refunded (minus any fee you set).
+          </p>
+
+          <div style={{ display: "flex", gap: 12, marginTop: 18, flexWrap: "wrap" }}>
+            <Link
+              href="/start"
+              style={{
+                display: "inline-block",
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: "1px solid #333",
+                textDecoration: "none",
+                color: "inherit",
+                fontWeight: 800,
+              }}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Create your inbox
+            </Link>
+
+            <Link
+              href="/login"
+              style={{
+                display: "inline-block",
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: "1px solid #222",
+                textDecoration: "none",
+                color: "inherit",
+                opacity: 0.9,
+                fontWeight: 700,
+              }}
             >
-              Learning
-            </a>{" "}
-            center.
+              Log in
+            </Link>
+
+            <Link
+              href="/how-it-works"
+              style={{
+                display: "inline-block",
+                padding: "12px 14px",
+                borderRadius: 12,
+                border: "1px solid #222",
+                textDecoration: "none",
+                color: "inherit",
+                opacity: 0.9,
+                fontWeight: 700,
+              }}
+            >
+              See how it works
+            </Link>
+          </div>
+
+          <p style={{ marginTop: 14, fontSize: 12, opacity: 0.65 }}>
+            Built for businesses: support@, sales@, partnerships@, recruiting@.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12, marginTop: 18 }}>
+          <div style={{ border: "1px solid #222", borderRadius: 16, padding: 16 }}>
+            <div style={{ fontWeight: 900 }}>How it works</div>
+            <div style={{ marginTop: 10, opacity: 0.85, lineHeight: 1.5 }}>
+              1) You publish a link (or forward a domain inbox).
+              <br />
+              2) Senders post a refundable bond to contact you.
+              <br />
+              3) You accept to get paid, or release/ignore to refund.
+            </div>
+          </div>
+
+          <div style={{ border: "1px solid #222", borderRadius: 16, padding: 16 }}>
+            <div style={{ fontWeight: 900 }}>Domain routing</div>
+            <div style={{ marginTop: 10, opacity: 0.85, lineHeight: 1.5 }}>
+              Own your domain? Forward a public inbox like hello@yourcompany.com into PostageRelay.
+              Your onboarding page already shows the forwarding address format.
+            </div>
+          </div>
+
+          <div style={{ border: "1px solid #222", borderRadius: 16, padding: 16 }}>
+            <div style={{ fontWeight: 900 }}>Manage everything</div>
+            <div style={{ marginTop: 10, opacity: 0.85, lineHeight: 1.5 }}>
+              After you log in, you can edit settings like your display name, minimum bond, and account details on the settings page.
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <Link href="/settings" style={{ textDecoration: "none", color: "inherit", opacity: 0.9, fontWeight: 700 }}>
+                Go to settings →
+              </Link>
+            </div>
+          </div>
         </div>
-      </main>
-    </div>
+
+        <div style={{ marginTop: 26, display: "flex", gap: 14, flexWrap: "wrap", opacity: 0.8, fontSize: 13 }}>
+          <Link href="/privacy" style={{ textDecoration: "none", color: "inherit" }}>
+            Privacy
+          </Link>
+          <Link href="/terms" style={{ textDecoration: "none", color: "inherit" }}>
+            Terms
+          </Link>
+          <Link href="/contact" style={{ textDecoration: "none", color: "inherit" }}>
+            Contact
+          </Link>
+        </div>
+      </div>
+    </main>
   );
 }

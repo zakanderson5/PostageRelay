@@ -76,7 +76,7 @@ export default async function Page(props: { params: Promise<{ publicId: string }
       capture_method: "manual",
       automatic_payment_methods: { enabled: true },
       metadata: { messagePublicId: msg.publicId },
-      description: `Postage Relay bond hold for ${msg.senderEmail}`,
+      description: "Postage Relay bond hold for " + msg.senderEmail,
     });
 
     clientSecret = pi.client_secret ?? null;
