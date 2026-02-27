@@ -4,12 +4,41 @@ export default function TermsPage() {
   return (
     <main style={{ minHeight: "100vh" }}>
       <TopNav />
-      <div style={{ width: "100%", maxWidth: 920, margin: "0 auto", padding: "24px 16px 60px" }}>
-        <div style={{ fontSize: 34, fontWeight: 900 }}>Terms</div>
-        <p style={{ marginTop: 12, opacity: 0.85, lineHeight: 1.6 }}>
-          Placeholder terms. Before going live, replace with real terms covering payment disputes, refund rules,
-          prohibited usage, and service availability disclaimers.
-        </p>
+      <div className="container" style={{ paddingTop: 18 }}>
+        <section className="hero">
+          <div className="kicker">Terms</div>
+          <h1 className="h1" style={{ fontSize: 42 }}>Terms of service</h1>
+          <p className="lead">
+            PostageRelay provides a pay‑to‑reach inbox. Senders place funds on hold to contact a receiver. Receivers decide whether to accept or release.
+          </p>
+
+          <div className="grid" style={{ marginTop: 18 }}>
+            <div className="card">
+              <div className="cardTitle">Payments</div>
+              <div className="cardBody">
+                Funds may be held, captured, or refunded based on receiver actions (accept/release/ignore/expire) and the receiver’s configured fee rules.
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="cardTitle">Prohibited use</div>
+              <div className="cardBody">
+                No harassment, unlawful content, malware, or attempts to bypass routing/bond requirements. We may suspend accounts for abuse.
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="cardTitle">Availability</div>
+              <div className="cardBody">
+                The service may change or be unavailable at times. We provide the platform “as is” and cannot guarantee delivery or response times.
+              </div>
+            </div>
+          </div>
+
+          <p style={{ marginTop: 16, color: "var(--muted2)", fontSize: 13 }}>
+            Questions: support@postagerelay.com
+          </p>
+        </section>
       </div>
     </main>
   );
