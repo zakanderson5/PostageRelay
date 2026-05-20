@@ -1,6 +1,15 @@
 import { Resend } from "resend";
 import { makeReviewUrl } from "@/lib/signedLinks";
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function notifyReceiver(params: {
   to: string;
   senderEmail: string;
@@ -34,9 +43,9 @@ export async function notifyReceiver(params: {
     html: `
       <div style="font-family: system-ui;">
         <h2>Postage Relay: New message</h2>
-        <p><b>From:</b> ${params.senderEmail}</p>
-        <p><b>Subject:</b> ${params.subject ?? "(none)"}</p>
-        <pre style="white-space: pre-wrap; padding: 12px; border: 1px solid #ddd;">${params.body}</pre>
+        <p><b>From:</b> ${escapeHtml(params.senderEmail)}</p>
+        <p><b>Subject:</b> ${params.subject != null ? escapeHtml(params.subject) : "(none)"}</p>
+        <pre style="white-space: pre-wrap; padding: 12px; border: 1px solid #ddd;">${escapeHtml(params.body)}</pre>
         <p><a href="${reviewUrl}">Review + Accept/Release</a></p>
         <p style="color:#666;">Delivery fee is non-refundable. Bond is refundable unless receiver accepts message.</p>
       </div>
