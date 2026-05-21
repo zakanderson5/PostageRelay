@@ -6,14 +6,14 @@ export default function HowItWorksPage() {
     <main style={{ minHeight: "100vh" }}>
       <TopNav />
       <div style={{ width: "100%", maxWidth: 920, margin: "0 auto", padding: "24px 16px 60px" }}>
-        <div style={{ fontSize: 34, fontWeight: 900 }}>How PostageRelay works</div>
+        <div style={{ fontSize: 34, fontWeight: 900 }}>How GatePost Inbox works</div>
 
         <div style={{ marginTop: 14, border: "1px solid #222", borderRadius: 16, padding: 18, lineHeight: 1.6, opacity: 0.9 }}>
-          Step 1: Create your PostageRelay inbox (pick a link slug).
+          Step 1: Create your GatePost Inbox (pick a link slug).
           <br />
           Step 2: Connect Stripe so you can receive payouts.
           <br />
-          Step 3: Publish your link (or forward a domain inbox into PostageRelay).
+          Step 3: Publish your link (or forward a domain inbox into GatePost Inbox).
           <br />
           Step 4: When someone messages you, they place a refundable bond at checkout.
           <br />

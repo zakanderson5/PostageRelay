@@ -15,7 +15,7 @@ export default function StartPage() {
         fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
       }}
     >
-      <h1 style={{ marginBottom: 8 }}>Create your PostageRelay inbox</h1>
+      <h1 style={{ marginBottom: 8 }}>Create your GatePost Inbox</h1>
 
       <p style={{ marginTop: 0, opacity: 0.85, lineHeight: 1.4 }}>
         Pick your link + password, then connect Stripe so you can receive payouts when you accept messages.

@@ -10,12 +10,12 @@ const font = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "PostageRelay",
-    template: "%s | PostageRelay",
+    default: "GatePost Inbox",
+    template: "%s | GatePost Inbox",
   },
   description:
     "A pay-to-reach inbox for businesses. Require a refundable bond for inbound email. Accept to get paid, or release/ignore to refund.",
-  metadataBase: new URL("https://www.postagerelay.com"),
+  metadataBase: new URL("https://www.gatepostinbox.com"),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE="https://www.postagerelay.com"
+BASE="https://www.gatepostinbox.com"
 
 echo "== Smoke test against: $BASE =="
 

@@ -23,9 +23,9 @@ export default function FaqPage() {
           </div>
 
           <div style={{ border: "1px solid #222", borderRadius: 16, padding: 18 }}>
-            <div style={{ fontWeight: 900 }}>Can I route a business email address through PostageRelay?</div>
+            <div style={{ fontWeight: 900 }}>Can I route a business email address through GatePost Inbox?</div>
             <div style={{ marginTop: 8, opacity: 0.85, lineHeight: 1.6 }}>
-              Yes. You can forward a public inbox like support@yourdomain.com into PostageRelay using a forwarding rule.
+              Yes. You can forward a public inbox like support@yourdomain.com into GatePost Inbox using a forwarding rule.
             </div>
           </div>
         </div>

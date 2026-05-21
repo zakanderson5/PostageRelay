@@ -19,7 +19,7 @@ export default function SettingsForm({ initial }: { initial: Initial }) {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
-  const publicLink = useMemo(() => `https://www.postagerelay.com/u/${initial.slug}`, [initial.slug]);
+  const publicLink = useMemo(() => `https://www.gatepostinbox.com/u/${initial.slug}`, [initial.slug]);
 
   async function save() {
     setSaving(true);

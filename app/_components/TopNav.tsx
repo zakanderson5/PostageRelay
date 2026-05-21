@@ -5,8 +5,8 @@ export default function TopNav() {
     <header className="nav">
       <div className="container navInner">
         <Link href="/" className="brand">
-          <span className="brandMark">PR</span>
-          <span>PostageRelay</span>
+          <span className="brandMark">GP</span>
+          <span>GatePost</span>
           <span className="badge">BETA</span>
         </Link>
 

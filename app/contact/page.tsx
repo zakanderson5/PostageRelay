@@ -16,14 +16,14 @@ export default function ContactPage() {
             <div className="card">
               <div className="cardTitle">Support</div>
               <div className="cardBody">
-                support@postagerelay.com
+                support@gatepostinbox.com
               </div>
             </div>
 
             <div className="card">
               <div className="cardTitle">Partnerships</div>
               <div className="cardBody">
-                partnerships@postagerelay.com
+                partnerships@gatepostinbox.com
               </div>
             </div>
           </div>
