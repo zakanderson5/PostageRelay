@@ -9,7 +9,7 @@ export default function TermsPage() {
           <div className="kicker">Terms</div>
           <h1 className="h1" style={{ fontSize: 42 }}>Terms of service</h1>
           <p className="lead">
-            PostageRelay provides a pay‑to‑reach inbox. Senders place funds on hold to contact a receiver. Receivers decide whether to accept or release.
+            GatePost Inbox provides a pay‑to‑reach inbox. Senders place funds on hold to contact a receiver. Receivers decide whether to accept or release.
           </p>
 
           <div className="grid" style={{ marginTop: 18 }}>
@@ -36,7 +36,7 @@ export default function TermsPage() {
           </div>
 
           <p style={{ marginTop: 16, color: "var(--muted2)", fontSize: 13 }}>
-            Questions: support@postagerelay.com
+            Questions: support@gatepostinbox.com
           </p>
         </section>
       </div>

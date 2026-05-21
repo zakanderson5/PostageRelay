@@ -33,16 +33,16 @@ export async function notifyReceiver(params: {
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const from = process.env.EMAIL_FROM || "Postage Relay <onboarding@resend.dev>";
+  const from = process.env.EMAIL_FROM || "GatePost Inbox <onboarding@resend.dev>";
 
   const { data, error } = await resend.emails.send({
     from,
     to: params.to,
-    subject: `[Postage Relay] New message from ${params.senderEmail}`,
+    subject: `[GatePost Inbox] New message from ${params.senderEmail}`,
     replyTo: params.senderEmail,
     html: `
       <div style="font-family: system-ui;">
-        <h2>Postage Relay: New message</h2>
+        <h2>GatePost Inbox: New message</h2>
         <p><b>From:</b> ${escapeHtml(params.senderEmail)}</p>
         <p><b>Subject:</b> ${params.subject != null ? escapeHtml(params.subject) : "(none)"}</p>
         <pre style="white-space: pre-wrap; padding: 12px; border: 1px solid #ddd;">${escapeHtml(params.body)}</pre>

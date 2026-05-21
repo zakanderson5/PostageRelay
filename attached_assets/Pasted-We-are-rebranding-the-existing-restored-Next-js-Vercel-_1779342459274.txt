@@ -1,0 +1,81 @@
+We are rebranding the existing restored Next.js/Vercel app.
+
+New product name:
+GatePost Inbox
+
+Short display name:
+GatePost
+
+New primary domain:
+https://www.gatepostinbox.com
+
+Do not rebuild the app.
+Do not migrate frameworks.
+Do not convert to Express/Vite.
+Do not use artifacts/ as the active app.
+Do not touch _replit_rewrite_reference.
+Do not create a mobile app.
+Do not change payment logic.
+Do not change Stripe capture, transfer, webhook, or Connect logic.
+Do not change database schema.
+Do not run Prisma db push.
+Do not run Prisma migrate.
+Do not change environment variable names.
+Do not hardcode secrets.
+Do not publish to Replit.
+Do not push to GitHub.
+
+TASK:
+Update user-facing branding from PostageRelay / Postage Relay / postagerelay.com to GatePost Inbox / GatePost / gatepostinbox.com.
+
+Scope:
+1. UI copy
+2. Navigation logo/name
+3. Page titles and metadata
+4. Landing page copy
+5. Signup/start page copy
+6. Email templates
+7. Payment description strings visible to users or Stripe dashboard
+8. Terms, privacy, contact, FAQ, pricing, and how-it-works copy
+9. Any hardcoded postagerelay.com references in user-facing copy
+
+Branding rules:
+- Use "GatePost Inbox" for formal product references.
+- Use "GatePost" for short logo/nav references where space is limited.
+- Use https://www.gatepostinbox.com for user-facing domain references.
+- Do not replace APP_BASE_URL or APP_URL in code with hardcoded URLs. Those should remain environment variables.
+- Do not rename package.json from bondmail unless necessary.
+- Do not change route structure.
+- Do not change payment, webhook, auth, database, or Stripe Connect code.
+
+Before editing:
+Run a search for:
+PostageRelay
+Postage Relay
+postagerelay
+postagerelay.com
+BondMail
+bondmail
+
+But do not change backup/reference folders:
+- node_modules
+- .next
+- .migration-backup
+- _replit_rewrite_reference
+- artifacts
+
+After editing:
+1. Run npm run build.
+2. Report exactly which files changed.
+3. Confirm no payment/database/webhook logic changed.
+4. Confirm no Prisma migration was run.
+5. Confirm no GitHub push.
+6. Stop and wait.
+
+Final report format:
+
+A. BRANDING CHANGES
+B. FILES CHANGED
+C. OLD NAME REFERENCES REMAINING
+D. BUILD RESULT
+E. SAFETY CONFIRMATION

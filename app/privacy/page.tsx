@@ -9,7 +9,7 @@ export default function PrivacyPage() {
           <div className="kicker">Privacy</div>
           <h1 className="h1" style={{ fontSize: 42 }}>Privacy policy</h1>
           <p className="lead">
-            This is a plain‑English summary of what PostageRelay collects, stores, and shares with vendors needed to run the service.
+            This is a plain‑English summary of what GatePost Inbox collects, stores, and shares with vendors needed to run the service.
           </p>
 
           <div className="grid" style={{ marginTop: 18 }}>
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
           </div>
 
           <p style={{ marginTop: 16, color: "var(--muted2)", fontSize: 13 }}>
-            For deletion requests: support@postagerelay.com
+            For deletion requests: support@gatepostinbox.com
           </p>
         </section>
       </div>

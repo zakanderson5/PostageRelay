@@ -17,7 +17,7 @@ export default function HomePage() {
           </h1>
 
           <p className="lead" style={{ maxWidth: 820 }}>
-            PostageRelay adds a <b>refundable bond</b> to inbound messages. Serious senders get through.
+            GatePost Inbox adds a <b>refundable bond</b> to inbound messages. Serious senders get through.
             You stay in control: <b>accept</b> and get paid, or <b>release</b> to refund.
           </p>
 
@@ -110,7 +110,7 @@ export default function HomePage() {
           <div className="kicker">Who it’s for</div>
           <h2 className="h1" style={{ fontSize: 36 }}>Different audiences. Same core idea: prove intent.</h2>
           <p className="lead" style={{ maxWidth: 960 }}>
-            PostageRelay is useful anywhere you’re flooded with noise, spam, unserious inquiries,
+            GatePost Inbox is useful anywhere you’re flooded with noise, spam, unserious inquiries,
             or people demanding time you didn’t agree to give away.
           </p>
 
@@ -121,7 +121,7 @@ export default function HomePage() {
               pain="Flooded with vague inquiries and time-wasters."
               win="Filter inbound instantly and prioritize serious people."
               bond="$25–$150"
-              script="“For priority review, use our PostageRelay link (refundable deposit).”"
+              script="“For priority review, use our GatePost Inbox link (refundable deposit).”"
             />
             <UseCaseCard
               title="High-demand services"
@@ -145,7 +145,7 @@ export default function HomePage() {
               pain="Cold outreach is automated and low intent."
               win="A pitch that matters should cost something (refundable bond)."
               bond="$50–$500"
-              script="“Partnership inquiries: use PostageRelay for priority review.”"
+              script="“Partnership inquiries: use GatePost Inbox for priority review.”"
             />
             <UseCaseCard
               title="Priority support lane"
@@ -171,7 +171,7 @@ export default function HomePage() {
           <div className="kicker">Domain routing</div>
           <h2 className="h1" style={{ fontSize: 36 }}>Works with your existing email</h2>
           <p className="lead" style={{ maxWidth: 980 }}>
-            If you own a domain (like <b>support@yourcompany.com</b>), you can route messages into PostageRelay
+            If you own a domain (like <b>support@yourcompany.com</b>), you can route messages into GatePost Inbox
             without rebuilding your whole workflow.
           </p>
 
@@ -179,7 +179,7 @@ export default function HomePage() {
             <div className="card">
               <div className="cardTitle">Option A: Forward one address (fastest)</div>
               <div className="cardBody">
-                Forward <b>support@</b> or <b>sales@</b> into PostageRelay. Great for a “priority inbox” channel.
+                Forward <b>support@</b> or <b>sales@</b> into GatePost Inbox. Great for a “priority inbox” channel.
               </div>
             </div>
             <div className="card">
@@ -191,7 +191,7 @@ export default function HomePage() {
             <div className="card">
               <div className="cardTitle">Still keep your free channel</div>
               <div className="cardBody">
-                Many businesses will keep a normal contact form and add PostageRelay as the “priority lane.”
+                Many businesses will keep a normal contact form and add GatePost Inbox as the “priority lane.”
               </div>
             </div>
           </div>
@@ -231,7 +231,7 @@ export default function HomePage() {
             <div className="card">
               <div className="cardTitle">Is this a paywall?</div>
               <div className="cardBody">
-                Think of it as a refundable deposit-backed priority lane. Many users keep a normal contact method and add PostageRelay for “serious only.”
+                Think of it as a refundable deposit-backed priority lane. Many users keep a normal contact method and add GatePost Inbox for “serious only.”
               </div>
             </div>
 
@@ -259,7 +259,7 @@ export default function HomePage() {
         </section>
 
         <footer style={{ marginTop: 38, color: "var(--muted2)", fontSize: 13 }}>
-          © {new Date().getFullYear()} PostageRelay. Built for people who value attention.
+          © {new Date().getFullYear()} GatePost Inbox. Built for people who value attention.
         </footer>
       </div>
     </main>

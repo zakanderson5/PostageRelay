@@ -31,17 +31,17 @@ export default function DomainRoutingOptions({ slug }: Props) {
   const safeSlug = useMemo(() => normalizeSlug(slug) || "your-slug", [slug]);
 
   // You can change this later if you decide a different inbound domain.
-  const inboundDomain = "in.postagerelay.com";
+  const inboundDomain = "in.gatepostinbox.com";
 
   const relayAddress = `${safeSlug}@${inboundDomain}`;
-  const publicLink = `https://www.postagerelay.com/u/${safeSlug}`;
+  const publicLink = `https://www.gatepostinbox.com/u/${safeSlug}`;
 
   return (
     <section style={{ marginTop: 18, padding: 14, border: "1px solid #333", borderRadius: 12 }}>
       <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>Domain routing (optional)</div>
       <div style={{ fontSize: 13, color: "#bbb", lineHeight: 1.4 }}>
-        Recommended: start with your Postage Relay link. If you own a domain, you can also forward one address
-        (like hello@company.com) into Postage Relay.
+        Recommended: start with your GatePost Inbox link. If you own a domain, you can also forward one address
+        (like hello@company.com) into GatePost Inbox.
       </div>
 
       <div style={{ marginTop: 12, padding: 12, border: "1px solid #2a2a2a", borderRadius: 10 }}>

@@ -17,7 +17,7 @@ export default function PricingPage() {
           <br />
           - You set a minimum bond.
           <br />
-          - If you accept: bond is captured and split between you and PostageRelay (platform fee).
+          - If you accept: bond is captured and split between you and GatePost Inbox (platform fee).
           <br />
           - If you release/ignore: sender is refunded (optionally minus a small handling fee you define).
         </div>
