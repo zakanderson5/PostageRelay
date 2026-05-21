@@ -27,6 +27,37 @@ export async function POST(req: Request) {
   }
 
   const obj: any = event.data.object as any;
+
+  // ---- Connect account updates (must run before the messagePublicId check;
+  // account.* events do not carry that metadata) ----
+  if (event.type === "account.updated") {
+    const account = obj as Stripe.Account;
+    const accountId = account?.id;
+    if (!accountId) {
+      console.warn("account.updated missing account id");
+      return new Response("ok", { status: 200 });
+    }
+
+    const onboarded = Boolean(
+      account.details_submitted &&
+        account.payouts_enabled &&
+        account.capabilities?.transfers === "active"
+    );
+
+    const result = await prisma.user.updateMany({
+      where: { stripeAccountId: accountId },
+      data: { stripeOnboarded: onboarded },
+    });
+
+    console.log("🔔 webhook: account.updated", {
+      accountId,
+      onboarded,
+      usersUpdated: result.count,
+    });
+
+    return new Response("ok", { status: 200 });
+  }
+
   const publicId: string | undefined = obj?.metadata?.messagePublicId;
 
   // If we can't associate this event to a message, ignore safely.
