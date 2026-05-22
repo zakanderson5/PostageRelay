@@ -26,34 +26,83 @@ function allowEmail(email: string): boolean {
   return arr.length <= MAX_PER_EMAIL;
 }
 
-const GENERIC_OK = NextResponse.json({ ok: true });
+// SAFE DIAGNOSTICS — logs only booleans/status labels and a short email-hash
+// prefix for correlation. Never includes the email address, raw token, token
+// hash, password, cookies, API key, or email body.
+type Diag = {
+  emailHashPrefix: string | null;
+  hasResendApiKey: boolean;
+  normalizedEmailProvided: boolean;
+  userFound: boolean;
+  userHasPasswordHash: boolean;
+  resetTokenCreated: boolean;
+  resendAttempted: boolean;
+  resendSucceeded: boolean;
+  resendErrorMessage?: string;
+  rateLimited?: boolean;
+  unexpectedError?: boolean;
+};
+
+function logDiag(d: Diag): void {
+  // eslint-disable-next-line no-console
+  console.log("[forgot-password diag]", JSON.stringify(d));
+}
 
 export async function POST(req: Request) {
+  const diag: Diag = {
+    emailHashPrefix: null,
+    hasResendApiKey: Boolean(process.env.RESEND_API_KEY),
+    normalizedEmailProvided: false,
+    userFound: false,
+    userHasPasswordHash: false,
+    resetTokenCreated: false,
+    resendAttempted: false,
+    resendSucceeded: false,
+  };
+
   let email = "";
   try {
     const body = (await req.json().catch(() => null)) as Body | null;
     email = String(body?.email ?? "").trim().toLowerCase();
   } catch {
+    logDiag(diag);
     return NextResponse.json({ ok: true });
   }
 
-  // Always return the same generic 200, regardless of branch outcome.
-  if (!email || !email.includes("@") || email.length > 254) {
+  const looksValid =
+    !!email && email.includes("@") && email.length > 2 && email.length <= 254;
+  diag.normalizedEmailProvided = looksValid;
+
+  if (!looksValid) {
+    logDiag(diag);
     return NextResponse.json({ ok: true });
   }
+
+  // Short SHA-256 hash prefix of the normalized email for log correlation only.
+  diag.emailHashPrefix = sha256Hex(email).slice(0, 8);
 
   // Run the real work in the background so timing is closer between the
   // "exists" and "does-not-exist" branches.
   void (async () => {
     try {
-      if (!allowEmail(email)) return;
+      if (!allowEmail(email)) {
+        diag.rateLimited = true;
+        logDiag(diag);
+        return;
+      }
 
       const user = await prisma.user.findUnique({
         where: { email },
         select: { id: true, passwordHash: true },
       });
 
-      if (!user || !user.passwordHash) return;
+      diag.userFound = !!user;
+      diag.userHasPasswordHash = !!user?.passwordHash;
+
+      if (!user || !user.passwordHash) {
+        logDiag(diag);
+        return;
+      }
 
       const rawToken = generateResetToken();
       const tokenHash = sha256Hex(rawToken);
@@ -68,12 +117,20 @@ export async function POST(req: Request) {
       await prisma.passwordResetToken.create({
         data: { userId: user.id, tokenHash, expiresAt },
       });
+      diag.resetTokenCreated = true;
 
-      await sendPasswordResetEmail({ to: email, rawToken });
+      const result = await sendPasswordResetEmail({ to: email, rawToken });
+      diag.resendAttempted = result.attempted;
+      diag.resendSucceeded = result.succeeded;
+      if (result.errorMessage) diag.resendErrorMessage = result.errorMessage;
+
+      logDiag(diag);
     } catch {
-      // Never log token, hash, password, or recipient.
+      diag.unexpectedError = true;
+      // Never log token, hash, password, recipient, cookies, or email body.
       // eslint-disable-next-line no-console
       console.error("forgot-password: background task failed");
+      logDiag(diag);
     }
   })();
 

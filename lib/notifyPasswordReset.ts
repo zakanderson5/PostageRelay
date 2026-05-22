@@ -23,10 +23,30 @@ export function buildResetUrl(rawToken: string): string {
   return `${getBaseUrl()}/reset-password?token=${encodeURIComponent(rawToken)}`;
 }
 
+export type SendPasswordResetResult = {
+  attempted: boolean;
+  succeeded: boolean;
+  errorMessage?: string;
+};
+
+function safeErrorMessage(err: unknown): string {
+  if (!err) return "unknown";
+  if (typeof err === "string") return err.slice(0, 200);
+  if (typeof err === "object") {
+    const anyErr = err as { name?: unknown; message?: unknown; statusCode?: unknown };
+    const parts: string[] = [];
+    if (typeof anyErr.name === "string") parts.push(anyErr.name);
+    if (typeof anyErr.statusCode === "number") parts.push(`status=${anyErr.statusCode}`);
+    if (typeof anyErr.message === "string") parts.push(anyErr.message);
+    if (parts.length) return parts.join(" ").slice(0, 200);
+  }
+  return "unknown";
+}
+
 export async function sendPasswordResetEmail(params: {
   to: string;
   rawToken: string;
-}): Promise<void> {
+}): Promise<SendPasswordResetResult> {
   const resetUrl = buildResetUrl(params.rawToken);
 
   // Dev fallback only (never in production). Logs only the URL, not the token-hash or email body.
@@ -35,7 +55,7 @@ export async function sendPasswordResetEmail(params: {
       // eslint-disable-next-line no-console
       console.log("[DEV] Password reset URL (no RESEND_API_KEY set):", resetUrl);
     }
-    return;
+    return { attempted: false, succeeded: false, errorMessage: "no_resend_api_key" };
   }
 
   const resend = new Resend(process.env.RESEND_API_KEY);
@@ -82,18 +102,26 @@ export async function sendPasswordResetEmail(params: {
     "If you didn't request a password reset, you can safely ignore this email — your password will not change.",
   ].join("\n");
 
-  const { error } = await resend.emails.send({
-    from,
-    to: params.to,
-    subject,
-    html,
-    text,
-  });
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: params.to,
+      subject,
+      html,
+      text,
+    });
 
-  if (error) {
-    // Generic log only — no token, no email body, no recipient address.
+    if (error) {
+      // Generic log only — no token, no email body, no recipient address, no API key.
+      // eslint-disable-next-line no-console
+      console.error("password reset email send failed");
+      return { attempted: true, succeeded: false, errorMessage: safeErrorMessage(error) };
+    }
+
+    return { attempted: true, succeeded: true };
+  } catch (err) {
     // eslint-disable-next-line no-console
-    console.error("password reset email send failed");
-    return;
+    console.error("password reset email send threw");
+    return { attempted: true, succeeded: false, errorMessage: safeErrorMessage(err) };
   }
 }
