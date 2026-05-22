@@ -120,32 +120,64 @@ export default function SendMessageForm({ slug, allowBoost, min, max }: Props) {
         const f = files[i];
         setProgress(`Uploading ${i + 1} of ${files.length}: ${f.name}`);
         const key = buildStorageKey(publicId, f.name);
+        const handleUploadUrl = `/api/messages/${publicId}/attachments/authorize`;
+        const safeOriginalFileName = sanitizeFilename(f.name);
+        const clientPayload = JSON.stringify({
+          publicId,
+          originalFileName: safeOriginalFileName,
+          contentType: f.type,
+          sizeBytes: f.size,
+        });
+
+        console.log("[attachments] upload_options_prepared", {
+          publicId,
+          fileName: safeOriginalFileName,
+          contentType: f.type,
+          sizeBytes: f.size,
+          handleUploadUrl,
+          pathnamePrefix: `messages/${publicId}/`,
+        });
         console.log("[attachments] upload_authorize_started");
         console.log("[attachments] upload_started");
+
+        // Hard timeout: 60s per file.
+        const ac = new AbortController();
+        const timer = setTimeout(() => ac.abort(), 60_000);
         let result;
         try {
           result = await upload(key, f, {
+            // NOTE: @vercel/blob v0.27.3 only supports access: "public".
+            // Attachment privacy is enforced server-side via the auth-gated
+            // download route; the blob URL is never returned to the receiver.
             access: "public",
-            handleUploadUrl: `/api/messages/${publicId}/attachments/authorize`,
+            handleUploadUrl,
             contentType: f.type,
-            clientPayload: JSON.stringify({
-              contentType: f.type,
-              sizeBytes: f.size,
-            }),
+            clientPayload,
+            abortSignal: ac.signal,
           });
         } catch (uerr: unknown) {
+          if (
+            (uerr instanceof DOMException && uerr.name === "AbortError") ||
+            (uerr instanceof Error && /abort/i.test(uerr.message))
+          ) {
+            throw new Error(
+              "Upload timed out. Please try again with a smaller file.",
+            );
+          }
           const msg =
-            uerr instanceof Error && uerr.message
-              ? uerr.message
-              : "Upload failed";
-          throw new Error(`Upload failed for ${f.name}: ${msg}`);
+            uerr instanceof Error && uerr.message ? uerr.message : "Upload failed";
+          throw new Error(
+            `File upload failed for ${f.name}: ${msg}. Please try again or send without attachments.`,
+          );
+        } finally {
+          clearTimeout(timer);
         }
         console.log("[attachments] upload_completed");
         uploaded.push({
           url: result.url,
           pathname: result.pathname,
           contentType: f.type,
-          originalFileName: sanitizeFilename(f.name),
+          originalFileName: safeOriginalFileName,
           sizeBytes: f.size,
         });
       }
