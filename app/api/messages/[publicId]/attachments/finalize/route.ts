@@ -14,11 +14,60 @@ export const dynamic = "force-dynamic";
 
 const PUBLIC_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
+function errName(e: unknown): string {
+  if (e instanceof Error) return e.name;
+  return typeof e;
+}
+function errMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  try {
+    return String(e);
+  } catch {
+    return "unknown";
+  }
+}
+function errStatus(e: unknown): number | undefined {
+  if (e && typeof e === "object" && "status" in e) {
+    const s = (e as { status?: unknown }).status;
+    if (typeof s === "number") return s;
+  }
+  return undefined;
+}
+function warnFinalize(
+  publicId: string,
+  items: IncomingItem[],
+  err: unknown,
+  extra?: Record<string, unknown>,
+) {
+  const contentTypes = items.map((i) => i.contentType ?? "unknown");
+  const sizeBytesTotal = items.reduce(
+    (s, i) =>
+      s + (typeof (i as { sizeBytes?: number }).sizeBytes === "number"
+        ? ((i as { sizeBytes?: number }).sizeBytes as number)
+        : 0),
+    0,
+  );
+  console.warn({
+    route: "attachments_finalize",
+    publicId,
+    fileCount: items.length,
+    contentTypes,
+    sizeBytesTotal,
+    error: {
+      name: errName(err),
+      message: errMessage(err),
+      status: errStatus(err),
+    },
+    ...(extra ?? {}),
+  });
+}
+
 type IncomingItem = {
   pathname?: string;
   url?: string;
   contentType?: string;
   originalFileName?: string;
+  sizeBytes?: number;
 };
 
 export async function POST(
@@ -69,22 +118,25 @@ export async function POST(
   for (const item of items) {
     const url = (item.url ?? "").trim();
     if (!url || !/^https?:\/\//i.test(url)) {
+      warnFinalize(publicId, items, new Error("Invalid blob URL"));
       return NextResponse.json({ error: "Invalid blob URL" }, { status: 400 });
     }
 
     let blob;
     try {
       blob = await head(url);
-    } catch {
+    } catch (err: unknown) {
+      warnFinalize(publicId, items, err, { step: "head" });
       return NextResponse.json({ error: "Blob not found" }, { status: 400 });
     }
     if (!blob.pathname.startsWith(`messages/${publicId}/`)) {
-      // Reject and best-effort delete the rogue object.
       try { await del(url); } catch {}
+      warnFinalize(publicId, items, new Error("Pathname not scoped"));
       return NextResponse.json({ error: "Pathname not scoped to message" }, { status: 400 });
     }
     if (!isAllowedContentType(blob.contentType)) {
       try { await del(url); } catch {}
+      warnFinalize(publicId, items, new Error(`Disallowed type: ${blob.contentType}`));
       return NextResponse.json({ error: `Disallowed type: ${blob.contentType}` }, { status: 400 });
     }
     verified.push({
@@ -129,22 +181,29 @@ export async function POST(
     return NextResponse.json({ error: "Attachment limit reached" }, { status: 409 });
   }
 
-  const created = await prisma.$transaction(
-    verified.map((v) =>
-      prisma.messageAttachment.create({
-        data: {
-          messageId: msg.id,
-          originalFileName: v.originalFileName,
-          storageProvider: "vercel_blob",
-          storageKey: v.pathname,
-          blobUrl: v.url,
-          contentType: v.contentType,
-          sizeBytes: v.sizeBytes,
-        },
-        select: { id: true, originalFileName: true, contentType: true, sizeBytes: true },
-      }),
-    ),
-  );
-
-  return NextResponse.json({ attachments: created });
+  try {
+    const created = await prisma.$transaction(
+      verified.map((v) =>
+        prisma.messageAttachment.create({
+          data: {
+            messageId: msg.id,
+            originalFileName: v.originalFileName,
+            storageProvider: "vercel_blob",
+            storageKey: v.pathname,
+            blobUrl: v.url,
+            contentType: v.contentType,
+            sizeBytes: v.sizeBytes,
+          },
+          select: { id: true, originalFileName: true, contentType: true, sizeBytes: true },
+        }),
+      ),
+    );
+    return NextResponse.json({ attachments: created });
+  } catch (err: unknown) {
+    warnFinalize(publicId, items, err, { step: "db_insert" });
+    return NextResponse.json(
+      { error: "Failed to record attachments" },
+      { status: 500 },
+    );
+  }
 }

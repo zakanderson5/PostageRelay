@@ -69,11 +69,25 @@ export default function SendMessageForm({ slug, allowBoost, min, max }: Props) {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  async function parseErrorResponse(res: Response, fallback: string): Promise<string> {
+    const text = await res.text().catch(() => "");
+    if (!text) return `${fallback} (HTTP ${res.status})`;
+    try {
+      const j = JSON.parse(text) as { error?: string };
+      if (j && typeof j.error === "string" && j.error) return j.error;
+    } catch {
+      // not JSON
+    }
+    return text.slice(0, 500);
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     if (files.length === 0) return; // let native form POST happen
     e.preventDefault();
     setError(null);
     setSubmitting(true);
+
+    let navigated = false;
     try {
       const fd = new FormData(e.currentTarget);
 
@@ -85,42 +99,60 @@ export default function SendMessageForm({ slug, allowBoost, min, max }: Props) {
         headers: { accept: "application/json" },
       });
       if (!createRes.ok) {
-        const text = await createRes.text();
-        throw new Error(text || "Failed to save message");
+        throw new Error(await parseErrorResponse(createRes, "Failed to save message"));
       }
       const { publicId, checkoutUrl } = (await createRes.json()) as {
         publicId: string;
         checkoutUrl: string;
       };
+      console.log("[attachments] message_created");
 
-      // 2) Upload each file directly to Vercel Blob
+      // 2) Upload each file directly to Vercel Blob (sequential)
       const uploaded: {
         url: string;
         pathname: string;
         contentType: string;
         originalFileName: string;
+        sizeBytes: number;
       }[] = [];
 
       for (let i = 0; i < files.length; i++) {
         const f = files[i];
         setProgress(`Uploading ${i + 1} of ${files.length}: ${f.name}`);
         const key = buildStorageKey(publicId, f.name);
-        const result = await upload(key, f, {
-          access: "public",
-          handleUploadUrl: `/api/messages/${publicId}/attachments/authorize`,
-          contentType: f.type,
-          clientPayload: JSON.stringify({ contentType: f.type }),
-        });
+        console.log("[attachments] upload_authorize_started");
+        console.log("[attachments] upload_started");
+        let result;
+        try {
+          result = await upload(key, f, {
+            access: "public",
+            handleUploadUrl: `/api/messages/${publicId}/attachments/authorize`,
+            contentType: f.type,
+            clientPayload: JSON.stringify({
+              contentType: f.type,
+              sizeBytes: f.size,
+            }),
+          });
+        } catch (uerr: unknown) {
+          const msg =
+            uerr instanceof Error && uerr.message
+              ? uerr.message
+              : "Upload failed";
+          throw new Error(`Upload failed for ${f.name}: ${msg}`);
+        }
+        console.log("[attachments] upload_completed");
         uploaded.push({
           url: result.url,
           pathname: result.pathname,
           contentType: f.type,
           originalFileName: sanitizeFilename(f.name),
+          sizeBytes: f.size,
         });
       }
 
       // 3) Finalize attachment metadata
       setProgress("Finalizing…");
+      console.log("[attachments] finalize_started");
       const finalizeRes = await fetch(
         `/api/messages/${publicId}/attachments/finalize`,
         {
@@ -130,16 +162,23 @@ export default function SendMessageForm({ slug, allowBoost, min, max }: Props) {
         },
       );
       if (!finalizeRes.ok) {
-        const text = await finalizeRes.text();
-        throw new Error(text || "Failed to finalize attachments");
+        throw new Error(
+          await parseErrorResponse(finalizeRes, "Failed to finalize attachments"),
+        );
       }
+      console.log("[attachments] finalize_completed");
 
       // 4) Navigate to checkout
+      console.log("[attachments] checkout_redirect");
+      navigated = true;
       window.location.href = checkoutUrl;
     } catch (err: unknown) {
-      setSubmitting(false);
-      setProgress(null);
       setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      if (!navigated) {
+        setSubmitting(false);
+        setProgress(null);
+      }
     }
   }
 
