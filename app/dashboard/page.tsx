@@ -58,9 +58,12 @@ export default async function DashboardPage() {
   if (!user) redirect("/start");
   if (!user.bondPage) redirect("/start");
 
+  // Hide unpaid drafts (DRAFT, AUTHORIZING) and FAILED from receiver views.
+  const VISIBLE_STATUSES = ["AUTHORIZED", "ACCEPTED", "RELEASED", "EXPIRED"] as const;
+
   const [messages, statusGroups, stripeStatus] = await Promise.all([
     prisma.message.findMany({
-      where: { receiverId: userId },
+      where: { receiverId: userId, status: { in: [...VISIBLE_STATUSES] } },
       orderBy: { createdAt: "desc" },
       take: 5,
       select: {
@@ -78,7 +81,7 @@ export default async function DashboardPage() {
     }),
     prisma.message.groupBy({
       by: ["status"],
-      where: { receiverId: userId },
+      where: { receiverId: userId, status: { in: [...VISIBLE_STATUSES] } },
       _count: { _all: true },
     }),
     computeStripeStatus(userId, user.stripeAccountId, user.stripeOnboarded),
