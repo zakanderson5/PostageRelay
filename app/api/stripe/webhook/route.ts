@@ -67,10 +67,14 @@ export async function POST(req: Request) {
     return new Response("ok", { status: 200 });
   }
 
-  // Load the message + receiver email + bondPage settings
+  // Load the message + receiver email + bondPage settings + attachment count (read-only)
   const msg = await prisma.message.findUnique({
     where: { publicId },
-    include: { receiver: true, bondPage: true },
+    include: {
+      receiver: true,
+      bondPage: true,
+      _count: { select: { attachments: true } },
+    },
   });
 
   if (!msg) {
@@ -112,6 +116,7 @@ export async function POST(req: Request) {
         body: msg.body,
         publicId: msg.publicId,
         expiresAt,
+        attachmentCount: msg._count.attachments,
       });
     } catch (e: any) {
       console.error("notifyReceiver failed", { publicId, error: e?.message ?? String(e) });

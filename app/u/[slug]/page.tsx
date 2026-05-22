@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import SendMessageForm from "./SendMessageForm";
 
 export default async function BondPage(props: {
   params: Promise<{ slug: string }>;
@@ -41,32 +42,7 @@ export default async function BondPage(props: {
 
       <h2 style={{ marginTop: 24, fontSize: 20, fontWeight: 700 }}>Send a message</h2>
 
-      <form
-        method="post"
-        action={`/api/public/pages/${page.slug}/message`}
-        style={{ marginTop: 12, display: "grid", gap: 10 }}
-      >
-        <input name="senderName" placeholder="Your name (optional)" style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }} />
-        <input required name="senderEmail" placeholder="Your email" style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }} />
-        <input name="subject" placeholder="Subject (optional)" style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }} />
-        <textarea required name="body" placeholder="Message" rows={6} style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }} />
-
-        {page.allowBoost ? (
-          <input
-            name="bondDollars"
-            type="number"
-            min={Number(min)}
-            max={Number(max)}
-            step="0.01"
-            placeholder={`Bond amount in dollars (min ${min}, max ${max})`}
-            style={{ padding: 10, borderRadius: 8, border: "1px solid #ddd" }}
-          />
-        ) : null}
-
-        <button type="submit" style={{ padding: 12, borderRadius: 10, border: "1px solid #222", fontWeight: 700 }}>
-          Continue
-        </button>
-      </form>
+      <SendMessageForm slug={page.slug} allowBoost={page.allowBoost} min={min} max={max} />
 
       {page.instructions ? <p style={{ marginTop: 16, color: "#444" }}>{page.instructions}</p> : null}
     </main>

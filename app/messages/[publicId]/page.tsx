@@ -10,6 +10,13 @@ import {
   statusColor,
   statusLabel,
 } from "@/lib/format";
+import { INLINE_PREVIEW_TYPES, isReceiverVisibleStatus } from "@/lib/attachments";
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +81,15 @@ export default async function MessageDetailPage(props: {
       authorizedAt: true,
       expiresAt: true,
       createdAt: true,
+      attachments: {
+        select: {
+          id: true,
+          originalFileName: true,
+          contentType: true,
+          sizeBytes: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
   });
 
@@ -157,6 +173,50 @@ export default async function MessageDetailPage(props: {
             <div style={valueStyle}>{payoutLabel(msg.status)}</div>
           </div>
         </section>
+
+        {msg.attachments.length > 0 && isReceiverVisibleStatus(msg.status) ? (
+          <section style={cardStyle}>
+            <h2 style={{ marginTop: 0, marginBottom: 12 }}>
+              Attachments ({msg.attachments.length})
+            </h2>
+            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 6 }}>
+              {msg.attachments.map((a) => {
+                const base = `/api/messages/${msg.publicId}/attachments/${a.id}`;
+                const canInline = INLINE_PREVIEW_TYPES.has(a.contentType);
+                return (
+                  <li
+                    key={a.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      padding: "8px 10px",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      borderRadius: 8,
+                      fontSize: 14,
+                    }}
+                  >
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      📎 {a.originalFileName}{" "}
+                      <span style={{ opacity: 0.65, fontSize: 12 }}>
+                        ({formatSize(a.sizeBytes)})
+                      </span>
+                    </span>
+                    <span style={{ display: "flex", gap: 10 }}>
+                      {canInline ? (
+                        <a href={`${base}?inline=1`} target="_blank" rel="noreferrer" style={{ color: "#6aa9ff" }}>
+                          View
+                        </a>
+                      ) : null}
+                      <a href={base} style={{ color: "#6aa9ff" }}>Download</a>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ) : null}
 
         <section style={cardStyle}>
           <h2 style={{ marginTop: 0, marginBottom: 12 }}>Message</h2>

@@ -108,6 +108,24 @@ model Message {
   receiver User     @relation("ReceiverMessages", fields: [receiverId], references: [id])
   bondPage BondPage @relation(fields: [bondPageId], references: [id])
 
+  attachments MessageAttachment[]
+
   @@index([receiverId, status])
   @@index([expiresAt])
+}
+
+model MessageAttachment {
+  id               String   @id @default(cuid())
+  messageId        String
+  originalFileName String
+  storageProvider  String   @default("vercel_blob")
+  storageKey       String
+  blobUrl          String
+  contentType      String
+  sizeBytes        Int
+  createdAt        DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
 }
