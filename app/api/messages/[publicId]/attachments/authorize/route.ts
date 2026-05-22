@@ -193,16 +193,9 @@ export async function POST(
 }
 
 // NOTE on access mode:
-// @vercel/blob v0.27.3 only supports access: "public". The client SDK throws
-// on any other value. Attachment privacy is preserved by:
-//   (a) never returning blobUrl to the receiver,
-//   (b) streaming the file server-side via /api/messages/[publicId]/attachments/[id]
-//       which requires either a logged-in receiver or a signed (e,s) link,
-//   (c) using long, unguessable per-file pathnames under messages/${publicId}/.
-// To move to a truly private bucket, upgrade @vercel/blob and switch this
-// route + the client upload() call to access: "private".
-
-// ALSO: callbackUrl is NOT part of the onBeforeGenerateToken return type in
-// this SDK version. The client SDK derives the server-to-server callback URL
-// automatically from `handleUploadUrl` (it absolutizes against the page origin).
-// Passing callbackUrl here is a no-op and a type error; do not add it.
+// @vercel/blob >= 2.3 supports private blob storage. The client passes
+// access: "private" to upload(); the server token returned by handleUpload
+// is matched to that access mode automatically. Receiver downloads go
+// through the auth-gated /api/messages/[publicId]/attachments/[id] route,
+// which uses the server SDK's get() with { access: "private" } to stream
+// the blob. The raw blob URL is never returned to the client.
