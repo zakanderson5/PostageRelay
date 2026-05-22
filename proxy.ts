@@ -6,9 +6,9 @@ export function proxy(req: NextRequest) {
   if (process.env.NODE_ENV === "production") {
     const p = req.nextUrl.pathname;
 
-    if (p === "/inbox" || p.startsWith("/inbox/")) {
-      return new NextResponse("Not Found", { status: 404 });
-    }
+if (p.startsWith("/inbox/")) {
+  return new NextResponse("Not Found", { status: 404 });
+}
 
     if (p.startsWith("/api/dev/")) {
       return new NextResponse("Not Found", { status: 404 });
