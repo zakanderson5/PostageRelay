@@ -45,7 +45,7 @@ type Diag = {
 
 function logDiag(d: Diag): void {
   // eslint-disable-next-line no-console
-  console.log("[forgot-password diag]", JSON.stringify(d));
+  console.warn("[forgot-password diag]", JSON.stringify(d));
 }
 
 export async function POST(req: Request) {
