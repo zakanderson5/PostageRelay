@@ -185,8 +185,13 @@ export async function POST(
       error: { name: errName(err), message: errMessage(err), status: errStatus(err) },
     });
     const status = errStatus(err) ?? 400;
+    // Do not echo raw SDK / validation error messages to the browser in
+    // production. They can leak SDK internals, pathnames, or hint at server
+    // state. Keep the structured server log above for debugging.
+    const isProd = process.env.NODE_ENV === "production";
+    const safeMessage = "File upload failed. Please try again.";
     return NextResponse.json(
-      { error: errMessage(err) || "Upload authorization failed" },
+      { error: isProd ? safeMessage : (errMessage(err) || safeMessage) },
       { status },
     );
   }
