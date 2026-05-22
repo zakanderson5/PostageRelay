@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 export default async function ReviewPage(props: {
   params: Promise<{ publicId: string }>;
-  searchParams: Promise<{ e?: string; s?: string; done?: string }>;
+  searchParams: Promise<{ e?: string; s?: string }>;
 }) {
   const { publicId } = await props.params;
   const sp = await props.searchParams;
@@ -30,12 +30,6 @@ export default async function ReviewPage(props: {
   return (
     <main style={{ padding: 24, maxWidth: 820, margin: "0 auto", fontFamily: "system-ui" }}>
       <h1 style={{ fontSize: 26, fontWeight: 900 }}>Review message</h1>
-
-      {sp.done ? (
-        <p style={{ marginTop: 12, padding: 10, border: "1px solid #2d2", borderRadius: 10 }}>
-          ✅ Action complete: <b>{sp.done}</b>
-        </p>
-      ) : null}
 
       <div style={{ marginTop: 14, padding: 12, border: "1px solid #333", borderRadius: 10 }}>
         <div><b>Status:</b> {msg.status}</div>
