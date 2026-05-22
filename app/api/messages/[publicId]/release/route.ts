@@ -3,6 +3,24 @@ import { stripe } from "@/lib/stripe";
 import { verifyMessageSignature } from "@/lib/signedLinks";
 import { NextResponse } from "next/server";
 
+type ResultState =
+  | "released"
+  | "already_handled"
+  | "invalid_link"
+  | "not_found"
+  | "error";
+
+function resultRedirect(
+  req: Request,
+  state: ResultState,
+  publicId?: string | null
+): NextResponse {
+  const url = new URL("/review-result", req.url);
+  url.searchParams.set("state", state);
+  if (publicId) url.searchParams.set("publicId", publicId);
+  return NextResponse.redirect(url, 303);
+}
+
 export async function POST(req: Request, context: { params: Promise<{ publicId: string }> }) {
   const { publicId } = await context.params;
 
@@ -11,7 +29,7 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
   const sig = url.searchParams.get("s") ?? "";
 
   if (!verifyMessageSignature(publicId, expUnix, sig)) {
-    return NextResponse.json({ error: "Invalid or expired link" }, { status: 401 });
+    return resultRedirect(req, "invalid_link");
   }
 
   const msg = await prisma.message.findUnique({
@@ -19,17 +37,42 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
     include: { bondPage: true },
   });
 
-  if (!msg || !msg.paymentIntentId) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (msg.status !== "AUTHORIZED") return NextResponse.json({ error: `Not AUTHORIZED (status=${msg.status})` }, { status: 400 });
-
-  const pi = await stripe.paymentIntents.retrieve(msg.paymentIntentId);
-  if (pi.status !== "requires_capture") {
-    return NextResponse.json({ error: `PaymentIntent not capturable (status=${pi.status})` }, { status: 400 });
+  if (!msg || !msg.paymentIntentId) {
+    return resultRedirect(req, "not_found");
+  }
+  if (msg.status !== "AUTHORIZED") {
+    return resultRedirect(req, "already_handled", publicId);
   }
 
-  const captured = await stripe.paymentIntents.capture(msg.paymentIntentId, {
-    amount_to_capture: msg.deliveryFeeCents,
-  });
+  let pi;
+  try {
+    pi = await stripe.paymentIntents.retrieve(msg.paymentIntentId);
+  } catch (err: any) {
+    console.error("Release: PI retrieve failed", {
+      publicId: msg.publicId,
+      code: err?.code,
+      type: err?.type,
+    });
+    return resultRedirect(req, "error", publicId);
+  }
+
+  if (pi.status !== "requires_capture") {
+    return resultRedirect(req, "already_handled", publicId);
+  }
+
+  let captured;
+  try {
+    captured = await stripe.paymentIntents.capture(msg.paymentIntentId, {
+      amount_to_capture: msg.deliveryFeeCents,
+    });
+  } catch (err: any) {
+    console.error("Release: capture failed", {
+      publicId: msg.publicId,
+      code: err?.code,
+      type: err?.type,
+    });
+    return resultRedirect(req, "error", publicId);
+  }
 
   await prisma.message.update({
     where: { id: msg.id },
@@ -39,5 +82,5 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
     },
   });
 
-  return NextResponse.redirect(new URL(`/r/${publicId}?e=${expUnix}&s=${sig}&done=released`, req.url), 303);
+  return resultRedirect(req, "released", publicId);
 }
