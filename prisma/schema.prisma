@@ -32,6 +32,22 @@ model User {
 
   bondPage BondPage?
   messages Message[] @relation("ReceiverMessages")
+
+  passwordResetTokens PasswordResetToken[] @relation("UserPasswordResets")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation("UserPasswordResets", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model BondPage {
