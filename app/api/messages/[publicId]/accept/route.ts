@@ -4,6 +4,27 @@ import { verifyMessageSignature } from "@/lib/signedLinks";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 
+type ResultState =
+  | "accepted"
+  | "payouts_not_ready"
+  | "no_stripe_account"
+  | "already_handled"
+  | "invalid_link"
+  | "not_found"
+  | "transfer_failed"
+  | "error";
+
+function resultRedirect(
+  req: Request,
+  state: ResultState,
+  publicId?: string | null
+): NextResponse {
+  const url = new URL("/review-result", req.url);
+  url.searchParams.set("state", state);
+  if (publicId) url.searchParams.set("publicId", publicId);
+  return NextResponse.redirect(url, 303);
+}
+
 async function isPayoutReady(
   stripeAccountId: string
 ): Promise<{ ready: boolean; account: Stripe.Account | null }> {
@@ -35,7 +56,7 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
   const sig = url.searchParams.get("s") ?? "";
 
   if (!verifyMessageSignature(publicId, expUnix, sig)) {
-    return NextResponse.json({ error: "Invalid or expired link" }, { status: 401 });
+    return resultRedirect(req, "invalid_link");
   }
 
   const msg = await prisma.message.findUnique({
@@ -44,15 +65,12 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
   });
 
   if (!msg || !msg.paymentIntentId) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return resultRedirect(req, "not_found");
   }
 
   // Already fully accepted (capture + transfer): idempotent success.
   if (msg.status === "ACCEPTED" && msg.transferId) {
-    return NextResponse.redirect(
-      new URL(`/r/${publicId}?e=${expUnix}&s=${sig}&done=accepted`, req.url),
-      303
-    );
+    return resultRedirect(req, "accepted", publicId);
   }
 
   // Decide which side-effects are still needed.
@@ -61,19 +79,13 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
     msg.status === "ACCEPTED" && !!msg.latestChargeId && !msg.transferId;
 
   if (!needsCapture && !needsTransferOnly) {
-    return NextResponse.json(
-      { error: `Not actionable (status=${msg.status})` },
-      { status: 400 }
-    );
+    return resultRedirect(req, "already_handled", publicId);
   }
 
   // Verify receiver is set up for payouts.
   const receiverStripeAccountId = msg.receiver.stripeAccountId;
   if (!receiverStripeAccountId) {
-    return NextResponse.json(
-      { error: "Receiver is not set up to receive payouts." },
-      { status: 409 }
-    );
+    return resultRedirect(req, "no_stripe_account", publicId);
   }
 
   // Always re-validate payout readiness from Stripe at accept time so we don't
@@ -87,10 +99,7 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
       });
     }
     if (!ready) {
-      return NextResponse.json(
-        { error: "Receiver is not set up to receive payouts." },
-        { status: 409 }
-      );
+      return resultRedirect(req, "payouts_not_ready", publicId);
     }
   }
 
@@ -106,35 +115,59 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
   let latestChargeId: string | null = msg.latestChargeId;
 
   if (needsCapture) {
-    const pi = await stripe.paymentIntents.retrieve(msg.paymentIntentId);
+    let pi: Stripe.PaymentIntent;
+    try {
+      pi = await stripe.paymentIntents.retrieve(msg.paymentIntentId);
+    } catch (err: any) {
+      console.error("Accept: PI retrieve failed", {
+        publicId: msg.publicId,
+        code: err?.code,
+        type: err?.type,
+      });
+      return resultRedirect(req, "error", publicId);
+    }
 
     let captured: Stripe.PaymentIntent;
     if (pi.status === "requires_capture") {
-      captured = await stripe.paymentIntents.capture(
-        msg.paymentIntentId,
-        {},
-        { idempotencyKey: `capture_${msg.publicId}` }
-      );
+      try {
+        captured = await stripe.paymentIntents.capture(
+          msg.paymentIntentId,
+          {},
+          { idempotencyKey: `capture_${msg.publicId}` }
+        );
+      } catch (err: any) {
+        console.error("Accept: capture failed", {
+          publicId: msg.publicId,
+          code: err?.code,
+          type: err?.type,
+        });
+        return resultRedirect(req, "error", publicId);
+      }
     } else if (pi.status === "succeeded") {
       // PI was already captured at Stripe (likely a prior request that crashed
       // before persisting). Recover by reusing the existing charge.
       captured = pi;
     } else {
-      return NextResponse.json(
-        { error: `PaymentIntent not capturable (status=${pi.status})` },
-        { status: 400 }
-      );
+      return resultRedirect(req, "already_handled", publicId);
     }
 
     latestChargeId = extractChargeId(captured.latest_charge);
 
     // Fallback: if latest_charge wasn't returned/expanded, look it up directly.
     if (!latestChargeId) {
-      const charges = await stripe.charges.list({
-        payment_intent: msg.paymentIntentId,
-        limit: 1,
-      });
-      latestChargeId = charges.data[0]?.id ?? null;
+      try {
+        const charges = await stripe.charges.list({
+          payment_intent: msg.paymentIntentId,
+          limit: 1,
+        });
+        latestChargeId = charges.data[0]?.id ?? null;
+      } catch (err: any) {
+        console.error("Accept: charges.list failed", {
+          publicId: msg.publicId,
+          code: err?.code,
+          type: err?.type,
+        });
+      }
     }
 
     if (!latestChargeId) {
@@ -144,10 +177,7 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
       });
       // Do NOT persist ACCEPTED without a charge id — that would strand funds
       // (transfer-retry path requires latestChargeId).
-      return NextResponse.json(
-        { error: "Internal error: could not resolve captured charge." },
-        { status: 500 }
-      );
+      return resultRedirect(req, "error", publicId);
     }
 
     // Persist ACCEPTED + latestChargeId BEFORE attempting the transfer.
@@ -165,10 +195,7 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
     console.error("Accept: missing latestChargeId before transfer", {
       publicId: msg.publicId,
     });
-    return NextResponse.json(
-      { error: "Internal error: missing charge id." },
-      { status: 500 }
-    );
+    return resultRedirect(req, "error", publicId);
   }
 
   // ---- Transfer 80% of bond to receiver's connected account ----
@@ -193,20 +220,10 @@ export async function POST(req: Request, context: { params: Promise<{ publicId: 
   } catch (err: any) {
     console.error("Accept: transfer failed", {
       publicId: msg.publicId,
-      latestChargeId,
       error: err?.message ?? String(err),
     });
-    return NextResponse.json(
-      {
-        error:
-          "Payment captured but payout to receiver failed. Please retry to complete the payout.",
-      },
-      { status: 502 }
-    );
+    return resultRedirect(req, "transfer_failed", publicId);
   }
 
-  return NextResponse.redirect(
-    new URL(`/r/${publicId}?e=${expUnix}&s=${sig}&done=accepted`, req.url),
-    303
-  );
+  return resultRedirect(req, "accepted", publicId);
 }
