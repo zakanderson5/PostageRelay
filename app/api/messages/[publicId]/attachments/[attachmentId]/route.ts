@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { get } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE_NAME, getUserIdFromToken } from "@/lib/auth";
 import { verifyMessageSignature } from "@/lib/signedLinks";
@@ -58,19 +59,20 @@ export async function GET(
       originalFileName: true,
       contentType: true,
       sizeBytes: true,
-      blobUrl: true,
+      storageKey: true,
     },
   });
   if (!att || att.messageId !== msg.id) return notFound();
 
-  // Fetch the blob server-side and stream it back, so the private URL never reaches the client.
-  let upstream: Response;
+  // Private blob: fetch server-side via the SDK so the private URL/token
+  // never reach the client.
+  let result;
   try {
-    upstream = await fetch(att.blobUrl);
+    result = await get(att.storageKey, { access: "private" });
   } catch {
     return new Response("Storage unavailable", { status: 502 });
   }
-  if (!upstream.ok || !upstream.body) {
+  if (!result || result.statusCode !== 200 || !result.stream) {
     return new Response("Storage error", { status: 502 });
   }
 
@@ -87,5 +89,5 @@ export async function GET(
   headers.set("cache-control", "private, no-store");
   headers.set("x-content-type-options", "nosniff");
 
-  return new Response(upstream.body, { status: 200, headers });
+  return new Response(result.stream, { status: 200, headers });
 }

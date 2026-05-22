@@ -146,10 +146,10 @@ export default function SendMessageForm({ slug, allowBoost, min, max }: Props) {
         let result;
         try {
           result = await upload(key, f, {
-            // NOTE: @vercel/blob v0.27.3 only supports access: "public".
-            // Attachment privacy is enforced server-side via the auth-gated
-            // download route; the blob URL is never returned to the receiver.
-            access: "public",
+            // @vercel/blob >= 2.3 supports private blob storage. Use it so
+            // raw blob URLs are not publicly fetchable. Receiver downloads
+            // still go through the auth-gated server-side download route.
+            access: "private",
             handleUploadUrl,
             contentType: f.type,
             clientPayload,
