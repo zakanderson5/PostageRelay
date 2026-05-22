@@ -1,12 +1,21 @@
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { signMessage } from "@/lib/signedLinks";
 import { notFound } from "next/navigation";
 import type { Message } from "@prisma/client";
+import { SESSION_COOKIE_NAME, getUserIdFromToken } from "@/lib/auth";
 
 export default async function InboxPage(props: {
   params: Promise<{ slug: string }>;
 }) {
+  if (process.env.NODE_ENV === "production") notFound();
+
   const { slug } = await props.params;
+
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value ?? null;
+  const userId = token ? await getUserIdFromToken(token) : null;
+  if (!userId) notFound();
 
   const page = await prisma.bondPage.findUnique({
     where: { slug },
@@ -19,6 +28,7 @@ export default async function InboxPage(props: {
   });
 
   if (!page) notFound();
+  if (page.userId !== userId) notFound();
 
   // Links valid for 7 days
   const expUnix = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
