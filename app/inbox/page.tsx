@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -27,8 +28,11 @@ export default async function InboxPage() {
   const userId = token ? await getUserIdFromToken(token) : null;
   if (!userId) redirect("/login?next=/inbox");
 
+  // Hide unpaid drafts (DRAFT, AUTHORIZING) and FAILED from receiver inbox.
+  const VISIBLE_STATUSES = ["AUTHORIZED", "ACCEPTED", "RELEASED", "EXPIRED"] as const;
+
   const messages = await prisma.message.findMany({
-    where: { receiverId: userId },
+    where: { receiverId: userId, status: { in: [...VISIBLE_STATUSES] } },
     orderBy: { createdAt: "desc" },
     take: 20,
     select: {
@@ -75,13 +79,18 @@ export default async function InboxPage() {
                   {messages.map((m) => {
                     const senderDisplay = m.senderName ? `${m.senderName} <${m.senderEmail}>` : m.senderEmail;
                     const canReview = m.status === "AUTHORIZED";
+                    const detailHref = `/messages/${m.publicId}`;
                     return (
                       <tr key={m.publicId} style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
                         <td style={{ padding: "10px 6px", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={senderDisplay}>
-                          {truncate(senderDisplay, 40)}
+                          <Link href={detailHref} style={{ color: "inherit", textDecoration: "none" }}>
+                            {truncate(senderDisplay, 40)}
+                          </Link>
                         </td>
                         <td style={{ padding: "10px 6px", maxWidth: 280 }} title={m.subject ?? ""}>
-                          {truncate(m.subject, 80) || <span style={{ opacity: 0.5 }}>(no subject)</span>}
+                          <Link href={detailHref} style={{ color: "inherit", textDecoration: "none" }}>
+                            {truncate(m.subject, 80) || <span style={{ opacity: 0.5 }}>(no subject)</span>}
+                          </Link>
                         </td>
                         <td style={{ padding: "10px 6px", whiteSpace: "nowrap" }}>
                           {centsToUsd(m.bondCents, m.currency)}
@@ -99,11 +108,9 @@ export default async function InboxPage() {
                           {m.status === "AUTHORIZED" && m.expiresAt ? relativeFromNow(m.expiresAt) : "—"}
                         </td>
                         <td style={{ padding: "10px 6px", whiteSpace: "nowrap" }}>
-                          {canReview ? (
-                            <a href={`/r/${m.publicId}`} style={{ color: "#6aa9ff" }}>
-                              Review
-                            </a>
-                          ) : null}
+                          <Link href={detailHref} style={{ color: "#6aa9ff" }}>
+                            {canReview ? "Review" : "Open"}
+                          </Link>
                         </td>
                       </tr>
                     );
