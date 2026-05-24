@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { stripe } from "@/lib/stripe";
 import { notFound } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default async function SuccessPage(props: {
   params: Promise<{ publicId: string }>;
@@ -9,33 +10,51 @@ export default async function SuccessPage(props: {
 
   const msg = await prisma.message.findUnique({
     where: { publicId },
-    include: { bondPage: true },
+    select: { id: true, paymentIntentId: true },
   });
 
   if (!msg || !msg.paymentIntentId) notFound();
 
-  const pi = await stripe.paymentIntents.retrieve(msg.paymentIntentId);
-
-  // IMPORTANT: Do NOT mutate DB here.
-  // Webhook is the source of truth for AUTHORIZED + notification.
-  const fresh = await prisma.message.findUnique({ where: { id: msg.id } });
-
   return (
-    <main style={{ padding: 24, maxWidth: 720, margin: "0 auto", fontFamily: "system-ui" }}>
-      <h1 style={{ fontSize: 26, fontWeight: 800 }}>✅ Delivered</h1>
+    <main style={{ padding: 24, maxWidth: 640, margin: "0 auto", fontFamily: "system-ui" }}>
+      <div
+        style={{
+          padding: 24,
+          border: "1px solid #2a2a2a",
+          borderRadius: 14,
+          background: "rgba(255,255,255,0.02)",
+        }}
+      >
+        <div style={{ fontSize: 13, letterSpacing: 1.1, textTransform: "uppercase", opacity: 0.7 }}>
+          GatePost Inbox
+        </div>
+        <h1 style={{ marginTop: 8, fontSize: 26, fontWeight: 900 }}>
+          ✅ Your message is on its way
+        </h1>
 
-      <p style={{ marginTop: 8 }}>
-        Payment authorized. The receiver will be notified by the webhook and can accept or release the bond.
-      </p>
+        <p style={{ marginTop: 12, lineHeight: 1.6 }}>
+          The receiver has been notified by email. They can review your message and accept,
+          release, or let it expire.
+        </p>
 
-      <div style={{ marginTop: 12, padding: 12, border: "1px solid #333", borderRadius: 10 }}>
-        <div><b>PaymentIntent status:</b> {pi.status}</div>
-        <div><b>Message status in DB:</b> {fresh?.status ?? msg.status}</div>
+        <div style={{ marginTop: 14, padding: 14, border: "1px solid #2a2a2a", borderRadius: 10, lineHeight: 1.7 }}>
+          <div><b>Your card has been authorized, not fully charged.</b></div>
+          <div style={{ marginTop: 6 }}>
+            The refundable deposit is held by Stripe. It is only captured if the receiver
+            accepts. Otherwise it is released back to your card on the card / bank&apos;s standard
+            timeline. The $0.99 delivery fee is non-refundable now that the message has been
+            delivered for review.
+          </div>
+        </div>
+
+        <p style={{ marginTop: 14, lineHeight: 1.6 }}>
+          You will be notified by email when the message is accepted, released, or expires.
+        </p>
+
+        <p style={{ marginTop: 12, color: "#9aa0aa", fontSize: 13 }}>
+          You can close this tab. No further action is needed from you.
+        </p>
       </div>
-
-      <p style={{ marginTop: 12, color: "#bbb" }}>
-        If the DB status is still AUTHORIZING, refresh in a moment — the Stripe webhook updates it.
-      </p>
     </main>
   );
 }
