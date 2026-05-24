@@ -28,15 +28,43 @@ export default async function BondPage(props: {
       {page.headline && <p style={{ marginTop: 8 }}>{page.headline}</p>}
 
       <div style={{ marginTop: 16, padding: 12, border: "1px solid #ddd", borderRadius: 10 }}>
-        <div><b>Minimum bond:</b> ${min}</div>
-        {page.allowBoost ? <div><b>Max bond:</b> ${max}</div> : null}
-        <div><b>Delivery fee:</b> $0.99</div>
-        <div><b>Timeout:</b> {page.timeoutHours} hours</div>
+        <div><b>Minimum deposit:</b> ${min}</div>
+        {page.allowBoost ? <div><b>Max deposit:</b> ${max}</div> : null}
+        <div><b>Delivery fee:</b> $0.99 (non-refundable once delivered)</div>
+        <div><b>Review window:</b> {page.timeoutHours} hours</div>
       </div>
+
+      {/* HOW THIS WORKS FOR YOU */}
+      <section
+        style={{
+          marginTop: 16,
+          padding: 14,
+          border: "1px solid #d6e8ff",
+          background: "#f3f8ff",
+          borderRadius: 10,
+          lineHeight: 1.6,
+          color: "#1a2a44",
+        }}
+      >
+        <div style={{ fontWeight: 800, marginBottom: 8 }}>How this works for you</div>
+        <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <li>Your deposit is a <b>payment authorization</b>, not an immediate charge.</li>
+          <li>If the receiver <b>accepts</b>, your deposit is captured.</li>
+          <li>
+            If the receiver <b>releases</b>, <b>ignores</b>, or does not respond within the
+            review window, your deposit is released back to your card.
+          </li>
+          <li>
+            The <b>$0.99 delivery fee is non-refundable</b> once your message is delivered for review.
+          </li>
+          <li><b>Stripe handles card details</b>; GatePost does not store card details.</li>
+          <li>Attachments are optional &mdash; please only send safe, relevant files.</li>
+        </ul>
+      </section>
 
       {searchParams.sent ? (
         <p style={{ marginTop: 16, padding: 12, background: "#e8fff0", border: "1px solid #b7f5cc", borderRadius: 10 }}>
-          ✅ Message saved to DB (payments next).
+          ✅ Message saved. Continue to payment to authorize your deposit.
         </p>
       ) : null}
 

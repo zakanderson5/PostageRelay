@@ -111,18 +111,45 @@ export default async function Page(props: { params: Promise<{ publicId: string }
     <main style={{ padding: 24, maxWidth: 720, margin: "0 auto", fontFamily: "system-ui" }}>
       <h1 style={{ fontSize: 26, fontWeight: 800 }}>Confirm delivery</h1>
 
-      <p style={{ marginTop: 10, color: "#555" }}>
-        You’re placing a hold, not a charge. The bond is refundable unless the receiver accepts.
-        The delivery fee is non-refundable if delivered.
+      <p style={{ marginTop: 10, color: "#555", lineHeight: 1.55 }}>
+        You are <b>authorizing a hold</b>, not an immediate charge. Your bond is{" "}
+        <b>refundable unless the receiver accepts</b>. The $0.99 delivery fee is{" "}
+        <b>non-refundable once your message is delivered for review</b>.
       </p>
 
       <div style={{ marginTop: 16, padding: 12, border: "1px solid #ddd", borderRadius: 10 }}>
         <div><b>From:</b> {fromLine}</div>
         <div><b>Subject:</b> {msg.subject || "(no subject)"}</div>
 
-        <div style={{ marginTop: 10 }}><b>Bond:</b> ${bond}</div>
-        <div><b>Delivery fee (non-refundable):</b> ${fee}</div>
-        <div><b>Total hold:</b> ${total}</div>
+        <div style={{ marginTop: 10 }}><b>Refundable deposit (bond):</b> ${bond}</div>
+        <div><b>Delivery fee (non-refundable once delivered):</b> ${fee}</div>
+        <div><b>Total authorization:</b> ${total}</div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 12,
+          padding: 12,
+          border: "1px solid #d6e8ff",
+          background: "#f3f8ff",
+          borderRadius: 10,
+          fontSize: 13,
+          lineHeight: 1.55,
+          color: "#234",
+        }}
+      >
+        <div><b>What happens next:</b></div>
+        <div style={{ marginTop: 6 }}>
+          • If the receiver <b>accepts</b>: the deposit is captured.
+        </div>
+        <div>
+          • If the receiver <b>releases</b>, <b>ignores</b>, or the timeout expires: the
+          deposit is released back to your card.
+        </div>
+        <div>
+          • <b>Card details are handled by Stripe</b> &mdash; GatePost does not see or store
+          your card information.
+        </div>
       </div>
 
       <div style={{ marginTop: 18 }}>

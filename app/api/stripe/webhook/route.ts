@@ -117,6 +117,7 @@ export async function POST(req: Request) {
         publicId: msg.publicId,
         expiresAt,
         attachmentCount: msg._count.attachments,
+        bondCents: msg.bondCents,
       });
     } catch (e: any) {
       console.error("notifyReceiver failed", { publicId, error: e?.message ?? String(e) });
